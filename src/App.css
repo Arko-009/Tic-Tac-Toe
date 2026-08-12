@@ -1,0 +1,82 @@
+/* ===== APP LAYOUT ===== */
+.app {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+}
+
+.app-content {
+  width: 100%;
+  max-width: 520px;
+  padding: var(--space-lg);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-lg);
+  animation: fadeIn 0.5s ease-out;
+}
+
+/* ===== SOUND TOGGLE ===== */
+.sound-toggle {
+  position: fixed;
+  top: var(--space-md);
+  right: var(--space-md);
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-full);
+  background: var(--bg-glass);
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+  transition: var(--transition-fast);
+  z-index: 100;
+}
+
+.sound-toggle:hover {
+  background: var(--bg-glass-hover);
+  color: var(--text-primary);
+  transform: scale(1.1);
+}
+
+/* ===== BACK BUTTON ===== */
+.back-button {
+  position: fixed;
+  top: var(--space-md);
+  left: var(--space-md);
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius-full);
+  background: var(--bg-glass);
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-family: var(--font-primary);
+  font-size: 0.85rem;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  transition: var(--transition-fast);
+  z-index: 100;
+}
+
+.back-button:hover {
+  background: var(--bg-glass-hover);
+  color: var(--text-primary);
+  transform: translateX(-2px);
+}
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 480px) {
+  .app-content {
+    padding: var(--space-md);
+    gap: var(--space-md);
+  }
+}

@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
-import type { Board, Player, GameConfig, GameResult, GameStatus, ScoreBoard } from '../game/types';
+import type { Board, Player, GameConfig, GameResult, ScoreBoard } from '../game/types';
 import { createEmptyBoard, makeMove, evaluateGame, getOpponent, isValidMove } from '../game/gameLogic';
 import { getAIMove } from '../game/aiEngine';
 

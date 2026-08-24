@@ -1,4 +1,4 @@
-import type { Board, CellValue, GameResult, Player } from './types';
+import type { Board, GameResult, Player } from './types';
 
 /** All 8 possible winning lines (indices into the board array) */
 export const WINNING_LINES: number[][] = [

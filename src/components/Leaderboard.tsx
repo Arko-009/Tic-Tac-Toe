@@ -3,6 +3,7 @@ import type { PlayerStats } from '../game/types';
 
 interface LeaderboardProps {
   entries: PlayerStats[];
+  isLoading?: boolean;
   onClose: () => void;
   onClear: () => void;
 }
@@ -21,7 +22,7 @@ function getWinRate(entry: PlayerStats): string {
   return `${Math.round((entry.wins / entry.totalGames) * 100)}%`;
 }
 
-export function Leaderboard({ entries, onClose, onClear }: LeaderboardProps) {
+export function Leaderboard({ entries, isLoading, onClose, onClear }: LeaderboardProps) {
   const [showConfirm, setShowConfirm] = useState(false);
   const [closing, setClosing] = useState(false);
 
@@ -45,6 +46,7 @@ export function Leaderboard({ entries, onClose, onClear }: LeaderboardProps) {
       <div className="leaderboard-header">
         <h2 className="leaderboard-title">
           <span>🏆</span> Leaderboard
+          <span className="lb-cloud-tag" title="Connected to MongoDB Atlas">☁️ Cloud</span>
         </h2>
         <button className="leaderboard-close" onClick={handleClose} aria-label="Close leaderboard" id="close-leaderboard">
           ✕
@@ -52,7 +54,12 @@ export function Leaderboard({ entries, onClose, onClear }: LeaderboardProps) {
       </div>
 
       <div className="leaderboard-body">
-        {entries.length === 0 ? (
+        {isLoading && entries.length === 0 ? (
+          <div className="leaderboard-empty">
+            <div className="leaderboard-empty-icon">⏳</div>
+            <p className="leaderboard-empty-text">Loading stats from MongoDB...</p>
+          </div>
+        ) : entries.length === 0 ? (
           <div className="leaderboard-empty">
             <div className="leaderboard-empty-icon">🏆</div>
             <p className="leaderboard-empty-text">No games played yet.<br />Start a game to see your stats!</p>

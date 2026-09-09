@@ -221,6 +221,7 @@ function App() {
       {showLeaderboard && (
         <Leaderboard
           entries={leaderboard.entries}
+          isLoading={leaderboard.isLoading}
           onClose={() => setShowLeaderboard(false)}
           onClear={leaderboard.clearLeaderboard}
         />

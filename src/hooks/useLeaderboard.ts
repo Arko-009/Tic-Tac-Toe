@@ -1,21 +1,12 @@
 import { useState, useCallback, useEffect } from 'react';
 import type { PlayerStats } from '../game/types';
-
-const STORAGE_KEY = 'tictactoe_leaderboard';
-
-function loadLeaderboard(): PlayerStats[] {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) return JSON.parse(raw);
-  } catch {
-    // Corrupted data — reset
-  }
-  return [];
-}
-
-function saveLeaderboard(entries: PlayerStats[]) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(entries));
-}
+import {
+  fetchLeaderboardApi,
+  recordWinApi,
+  recordLossApi,
+  recordDrawApi,
+  clearLeaderboardApi,
+} from '../services/leaderboardApi';
 
 function sortLeaderboard(entries: PlayerStats[]): PlayerStats[] {
   return [...entries].sort((a, b) => {
@@ -33,15 +24,38 @@ function sortLeaderboard(entries: PlayerStats[]): PlayerStats[] {
 }
 
 export function useLeaderboard() {
-  const [entries, setEntries] = useState<PlayerStats[]>(() => sortLeaderboard(loadLeaderboard()));
+  const [entries, setEntries] = useState<PlayerStats[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Persist whenever entries change
+  // Fetch leaderboard directly from MongoDB Atlas on mount
   useEffect(() => {
-    saveLeaderboard(entries);
-  }, [entries]);
+    let isMounted = true;
+
+    async function loadFromMongoDB() {
+      try {
+        const remoteData = await fetchLeaderboardApi();
+        if (isMounted) {
+          setEntries(remoteData);
+        }
+      } catch (err) {
+        console.error('Failed to fetch leaderboard from MongoDB:', err);
+      } finally {
+        if (isMounted) {
+          setIsLoading(false);
+        }
+      }
+    }
+
+    loadFromMongoDB();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   /** Record a win for the given player name */
   const recordWin = useCallback((playerName: string) => {
+    // 1. Optimistic state update in memory for immediate UI responsiveness
     setEntries((prev) => {
       const existing = prev.find((e) => e.name.toLowerCase() === playerName.toLowerCase());
       if (existing) {
@@ -53,7 +67,9 @@ export function useLeaderboard() {
           bestStreak: Math.max(existing.bestStreak, existing.currentStreak + 1),
           lastPlayed: Date.now(),
         };
-        return sortLeaderboard(prev.map((e) => (e.name.toLowerCase() === playerName.toLowerCase() ? updated : e)));
+        return sortLeaderboard(
+          prev.map((e) => (e.name.toLowerCase() === playerName.toLowerCase() ? updated : e))
+        );
       }
       const newEntry: PlayerStats = {
         name: playerName,
@@ -67,10 +83,20 @@ export function useLeaderboard() {
       };
       return sortLeaderboard([...prev, newEntry]);
     });
+
+    // 2. Persist directly to MongoDB Atlas
+    recordWinApi(playerName)
+      .then((data) => {
+        setEntries(data);
+      })
+      .catch((err) => {
+        console.error('Failed to record win in MongoDB:', err);
+      });
   }, []);
 
   /** Record a loss for the given player name */
   const recordLoss = useCallback((playerName: string) => {
+    // 1. Optimistic state update in memory for immediate UI responsiveness
     setEntries((prev) => {
       const existing = prev.find((e) => e.name.toLowerCase() === playerName.toLowerCase());
       if (existing) {
@@ -78,10 +104,12 @@ export function useLeaderboard() {
           ...existing,
           losses: existing.losses + 1,
           totalGames: existing.totalGames + 1,
-          currentStreak: 0, // Reset streak on loss
+          currentStreak: 0,
           lastPlayed: Date.now(),
         };
-        return sortLeaderboard(prev.map((e) => (e.name.toLowerCase() === playerName.toLowerCase() ? updated : e)));
+        return sortLeaderboard(
+          prev.map((e) => (e.name.toLowerCase() === playerName.toLowerCase() ? updated : e))
+        );
       }
       const newEntry: PlayerStats = {
         name: playerName,
@@ -95,10 +123,20 @@ export function useLeaderboard() {
       };
       return sortLeaderboard([...prev, newEntry]);
     });
+
+    // 2. Persist directly to MongoDB Atlas
+    recordLossApi(playerName)
+      .then((data) => {
+        setEntries(data);
+      })
+      .catch((err) => {
+        console.error('Failed to record loss in MongoDB:', err);
+      });
   }, []);
 
   /** Record a draw for the given player name */
   const recordDraw = useCallback((playerName: string) => {
+    // 1. Optimistic state update in memory for immediate UI responsiveness
     setEntries((prev) => {
       const existing = prev.find((e) => e.name.toLowerCase() === playerName.toLowerCase());
       if (existing) {
@@ -106,10 +144,12 @@ export function useLeaderboard() {
           ...existing,
           draws: existing.draws + 1,
           totalGames: existing.totalGames + 1,
-          currentStreak: 0, // Reset streak on draw
+          currentStreak: 0,
           lastPlayed: Date.now(),
         };
-        return sortLeaderboard(prev.map((e) => (e.name.toLowerCase() === playerName.toLowerCase() ? updated : e)));
+        return sortLeaderboard(
+          prev.map((e) => (e.name.toLowerCase() === playerName.toLowerCase() ? updated : e))
+        );
       }
       const newEntry: PlayerStats = {
         name: playerName,
@@ -123,6 +163,15 @@ export function useLeaderboard() {
       };
       return sortLeaderboard([...prev, newEntry]);
     });
+
+    // 2. Persist directly to MongoDB Atlas
+    recordDrawApi(playerName)
+      .then((data) => {
+        setEntries(data);
+      })
+      .catch((err) => {
+        console.error('Failed to record draw in MongoDB:', err);
+      });
   }, []);
 
   /** Get stats for a specific player */
@@ -133,14 +182,17 @@ export function useLeaderboard() {
     [entries]
   );
 
-  /** Clear the entire leaderboard */
+  /** Clear the entire leaderboard directly in MongoDB Atlas */
   const clearLeaderboard = useCallback(() => {
     setEntries([]);
-    localStorage.removeItem(STORAGE_KEY);
+    clearLeaderboardApi().catch((err) => {
+      console.error('Failed to clear leaderboard in MongoDB:', err);
+    });
   }, []);
 
   return {
     entries,
+    isLoading,
     recordWin,
     recordLoss,
     recordDraw,

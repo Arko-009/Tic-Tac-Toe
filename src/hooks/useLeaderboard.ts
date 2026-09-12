@@ -8,88 +8,26 @@ import {
   clearLeaderboardApi,
 } from '../services/leaderboardApi';
 
-const STORAGE_CACHE_KEY = 'tictactoe_leaderboard_cache';
-
-// Seed data from MongoDB Atlas so visitors immediately see stored rankings
-// even before the network request finishes or if visiting offline/GitHub Pages
-export const INITIAL_LEADERBOARD_SEED: PlayerStats[] = [
-  {
-    name: 'Alice',
-    wins: 2,
-    losses: 0,
-    draws: 0,
-    currentStreak: 2,
-    bestStreak: 2,
-    totalGames: 2,
-    lastPlayed: 1788969582776,
-  },
-  {
-    name: 'Arko',
-    wins: 1,
-    losses: 0,
-    draws: 0,
-    currentStreak: 1,
-    bestStreak: 1,
-    totalGames: 1,
-    lastPlayed: 1788970783663,
-  },
-  {
-    name: 'Easy Bot',
-    wins: 0,
-    losses: 1,
-    draws: 0,
-    currentStreak: 0,
-    bestStreak: 0,
-    totalGames: 1,
-    lastPlayed: 1788970783667,
-  },
-  {
-    name: 'Bob',
-    wins: 0,
-    losses: 1,
-    draws: 0,
-    currentStreak: 0,
-    bestStreak: 0,
-    totalGames: 1,
-    lastPlayed: 1788969582944,
-  },
-];
+export type LeaderboardConnectionStatus = 'cloud' | 'error' | 'syncing';
 
 function sortLeaderboard(entries: PlayerStats[]): PlayerStats[] {
   return [...entries].sort((a, b) => {
-    // Sort by best streak descending
+    // 1. Sort by best streak descending
     if (b.bestStreak !== a.bestStreak) return b.bestStreak - a.bestStreak;
-    // Then by win rate descending
+    // 2. Then by win rate descending
     const aRate = a.totalGames > 0 ? a.wins / a.totalGames : 0;
     const bRate = b.totalGames > 0 ? b.wins / b.totalGames : 0;
     if (bRate !== aRate) return bRate - aRate;
-    // Then by total wins descending
+    // 3. Then by total wins descending
     if (b.wins !== a.wins) return b.wins - a.wins;
-    // Then by most recent
+    // 4. Then by most recent
     return b.lastPlayed - a.lastPlayed;
   });
 }
 
-function getInitialEntries(): PlayerStats[] {
-  try {
-    const raw = localStorage.getItem(STORAGE_CACHE_KEY);
-    if (raw) {
-      const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed) && parsed.length > 0) {
-        return sortLeaderboard(parsed);
-      }
-    }
-  } catch {
-    // Fall back to seed data
-  }
-  return sortLeaderboard(INITIAL_LEADERBOARD_SEED);
-}
-
-export type LeaderboardConnectionStatus = 'cloud' | 'offline' | 'syncing';
-
 export function useLeaderboard() {
-  const [entries, setEntries] = useState<PlayerStats[]>(getInitialEntries);
-  const [isLoading, setIsLoading] = useState(false);
+  const [entries, setEntries] = useState<PlayerStats[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [isSyncing, setIsSyncing] = useState(false);
   const [status, setStatus] = useState<LeaderboardConnectionStatus>('syncing');
   const [error, setError] = useState<string | null>(null);
@@ -103,9 +41,10 @@ export function useLeaderboard() {
     };
   }, []);
 
-  // Fetch leaderboard directly from MongoDB Atlas
+  /** Fetch live leaderboard records directly from MongoDB Atlas */
   const refreshLeaderboard = useCallback(async () => {
     setIsSyncing(true);
+    setError(null);
     try {
       const remoteData = await fetchLeaderboardApi();
       if (!isMountedRef.current) return;
@@ -113,17 +52,12 @@ export function useLeaderboard() {
         setEntries(remoteData);
         setStatus('cloud');
         setError(null);
-        try {
-          localStorage.setItem(STORAGE_CACHE_KEY, JSON.stringify(remoteData));
-        } catch {
-          // localStorage may be unavailable
-        }
       }
     } catch (err: unknown) {
       if (!isMountedRef.current) return;
-      const errorMessage = err instanceof Error ? err.message : 'Connection failed';
-      console.warn('Leaderboard cloud sync noticed:', errorMessage);
-      setStatus('offline');
+      const errorMessage = err instanceof Error ? err.message : 'Failed to connect to MongoDB';
+      console.warn('MongoDB sync error:', errorMessage);
+      setStatus('error');
       setError(errorMessage);
     } finally {
       if (isMountedRef.current) {
@@ -133,16 +67,16 @@ export function useLeaderboard() {
     }
   }, []);
 
-  // Auto-sync from MongoDB on initial mount
+  // Fetch initial leaderboard from MongoDB on mount
   useEffect(() => {
     refreshLeaderboard();
   }, [refreshLeaderboard]);
 
-  /** Record a win for the given player name */
+  /** Record a win live in MongoDB Atlas */
   const recordWin = useCallback((playerName: string) => {
+    // Optimistic in-memory update for instant visual feedback
     setEntries((prev) => {
       const existing = prev.find((e) => e.name.toLowerCase() === playerName.toLowerCase());
-      let updatedList: PlayerStats[];
       if (existing) {
         const updated: PlayerStats = {
           ...existing,
@@ -152,56 +86,46 @@ export function useLeaderboard() {
           bestStreak: Math.max(existing.bestStreak, existing.currentStreak + 1),
           lastPlayed: Date.now(),
         };
-        updatedList = sortLeaderboard(
+        return sortLeaderboard(
           prev.map((e) => (e.name.toLowerCase() === playerName.toLowerCase() ? updated : e))
         );
-      } else {
-        const newEntry: PlayerStats = {
-          name: playerName,
-          wins: 1,
-          losses: 0,
-          draws: 0,
-          currentStreak: 1,
-          bestStreak: 1,
-          totalGames: 1,
-          lastPlayed: Date.now(),
-        };
-        updatedList = sortLeaderboard([...prev, newEntry]);
       }
-      try {
-        localStorage.setItem(STORAGE_CACHE_KEY, JSON.stringify(updatedList));
-      } catch {
-        // ignore
-      }
-      return updatedList;
+      const newEntry: PlayerStats = {
+        name: playerName,
+        wins: 1,
+        losses: 0,
+        draws: 0,
+        currentStreak: 1,
+        bestStreak: 1,
+        totalGames: 1,
+        lastPlayed: Date.now(),
+      };
+      return sortLeaderboard([...prev, newEntry]);
     });
 
-    // Persist to MongoDB Atlas
+    // Send match outcome directly to MongoDB Atlas
     recordWinApi(playerName)
       .then((data) => {
         if (isMountedRef.current && Array.isArray(data)) {
           setEntries(data);
           setStatus('cloud');
-          try {
-            localStorage.setItem(STORAGE_CACHE_KEY, JSON.stringify(data));
-          } catch {
-            // ignore
-          }
+          setError(null);
         }
       })
       .catch((err) => {
-        console.warn('Saved win locally; cloud sync deferred:', err.message);
+        console.error('Failed to update win in MongoDB Atlas:', err);
         if (isMountedRef.current) {
-          setStatus('offline');
+          setStatus('error');
+          setError(err.message);
         }
       });
   }, []);
 
-  /** Record a loss for the given player name */
+  /** Record a loss live in MongoDB Atlas */
   const recordLoss = useCallback((playerName: string) => {
+    // Optimistic in-memory update for instant visual feedback
     setEntries((prev) => {
       const existing = prev.find((e) => e.name.toLowerCase() === playerName.toLowerCase());
-      let updatedList: PlayerStats[];
       if (existing) {
         const updated: PlayerStats = {
           ...existing,
@@ -210,56 +134,46 @@ export function useLeaderboard() {
           currentStreak: 0,
           lastPlayed: Date.now(),
         };
-        updatedList = sortLeaderboard(
+        return sortLeaderboard(
           prev.map((e) => (e.name.toLowerCase() === playerName.toLowerCase() ? updated : e))
         );
-      } else {
-        const newEntry: PlayerStats = {
-          name: playerName,
-          wins: 0,
-          losses: 1,
-          draws: 0,
-          currentStreak: 0,
-          bestStreak: 0,
-          totalGames: 1,
-          lastPlayed: Date.now(),
-        };
-        updatedList = sortLeaderboard([...prev, newEntry]);
       }
-      try {
-        localStorage.setItem(STORAGE_CACHE_KEY, JSON.stringify(updatedList));
-      } catch {
-        // ignore
-      }
-      return updatedList;
+      const newEntry: PlayerStats = {
+        name: playerName,
+        wins: 0,
+        losses: 1,
+        draws: 0,
+        currentStreak: 0,
+        bestStreak: 0,
+        totalGames: 1,
+        lastPlayed: Date.now(),
+      };
+      return sortLeaderboard([...prev, newEntry]);
     });
 
-    // Persist to MongoDB Atlas
+    // Send match outcome directly to MongoDB Atlas
     recordLossApi(playerName)
       .then((data) => {
         if (isMountedRef.current && Array.isArray(data)) {
           setEntries(data);
           setStatus('cloud');
-          try {
-            localStorage.setItem(STORAGE_CACHE_KEY, JSON.stringify(data));
-          } catch {
-            // ignore
-          }
+          setError(null);
         }
       })
       .catch((err) => {
-        console.warn('Saved loss locally; cloud sync deferred:', err.message);
+        console.error('Failed to update loss in MongoDB Atlas:', err);
         if (isMountedRef.current) {
-          setStatus('offline');
+          setStatus('error');
+          setError(err.message);
         }
       });
   }, []);
 
-  /** Record a draw for the given player name */
+  /** Record a draw live in MongoDB Atlas */
   const recordDraw = useCallback((playerName: string) => {
+    // Optimistic in-memory update for instant visual feedback
     setEntries((prev) => {
       const existing = prev.find((e) => e.name.toLowerCase() === playerName.toLowerCase());
-      let updatedList: PlayerStats[];
       if (existing) {
         const updated: PlayerStats = {
           ...existing,
@@ -268,47 +182,37 @@ export function useLeaderboard() {
           currentStreak: 0,
           lastPlayed: Date.now(),
         };
-        updatedList = sortLeaderboard(
+        return sortLeaderboard(
           prev.map((e) => (e.name.toLowerCase() === playerName.toLowerCase() ? updated : e))
         );
-      } else {
-        const newEntry: PlayerStats = {
-          name: playerName,
-          wins: 0,
-          losses: 0,
-          draws: 1,
-          currentStreak: 0,
-          bestStreak: 0,
-          totalGames: 1,
-          lastPlayed: Date.now(),
-        };
-        updatedList = sortLeaderboard([...prev, newEntry]);
       }
-      try {
-        localStorage.setItem(STORAGE_CACHE_KEY, JSON.stringify(updatedList));
-      } catch {
-        // ignore
-      }
-      return updatedList;
+      const newEntry: PlayerStats = {
+        name: playerName,
+        wins: 0,
+        losses: 0,
+        draws: 1,
+        currentStreak: 0,
+        bestStreak: 0,
+        totalGames: 1,
+        lastPlayed: Date.now(),
+      };
+      return sortLeaderboard([...prev, newEntry]);
     });
 
-    // Persist to MongoDB Atlas
+    // Send match outcome directly to MongoDB Atlas
     recordDrawApi(playerName)
       .then((data) => {
         if (isMountedRef.current && Array.isArray(data)) {
           setEntries(data);
           setStatus('cloud');
-          try {
-            localStorage.setItem(STORAGE_CACHE_KEY, JSON.stringify(data));
-          } catch {
-            // ignore
-          }
+          setError(null);
         }
       })
       .catch((err) => {
-        console.warn('Saved draw locally; cloud sync deferred:', err.message);
+        console.error('Failed to update draw in MongoDB Atlas:', err);
         if (isMountedRef.current) {
-          setStatus('offline');
+          setStatus('error');
+          setError(err.message);
         }
       });
   }, []);
@@ -321,17 +225,22 @@ export function useLeaderboard() {
     [entries]
   );
 
-  /** Clear the entire leaderboard */
+  /** Clear the entire leaderboard directly from MongoDB Atlas */
   const clearLeaderboard = useCallback(() => {
     setEntries([]);
-    try {
-      localStorage.removeItem(STORAGE_CACHE_KEY);
-    } catch {
-      // ignore
-    }
-    clearLeaderboardApi().catch((err) => {
-      console.warn('Cleared local leaderboard; cloud delete error:', err.message);
-    });
+    clearLeaderboardApi()
+      .then(() => {
+        if (isMountedRef.current) {
+          setStatus('cloud');
+        }
+      })
+      .catch((err) => {
+        console.error('Failed to clear leaderboard in MongoDB:', err);
+        if (isMountedRef.current) {
+          setStatus('error');
+          setError(err.message);
+        }
+      });
   }, []);
 
   return {

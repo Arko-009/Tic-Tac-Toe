@@ -752,14 +752,14 @@
   animation: pulseGlow 1.5s ease-in-out infinite;
 }
 
-.lb-offline-tag {
+.lb-error-tag {
   font-size: 0.72rem;
   font-weight: 600;
   padding: 2px 8px;
   border-radius: var(--radius-full);
-  background: rgba(255, 136, 0, 0.15);
-  border: 1px solid rgba(255, 136, 0, 0.35);
-  color: #ffaa33;
+  background: rgba(255, 45, 117, 0.15);
+  border: 1px solid rgba(255, 45, 117, 0.35);
+  color: #ff2d75;
   letter-spacing: 0.03em;
   display: inline-flex;
   align-items: center;

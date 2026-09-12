@@ -32,6 +32,7 @@ export function Leaderboard({
   isLoading = false,
   isSyncing = false,
   status = 'cloud',
+  error,
   onClose,
   onClear,
   onRefresh,
@@ -63,10 +64,10 @@ export function Leaderboard({
           </h2>
           {isSyncing ? (
             <span className="lb-sync-tag" title="Syncing with MongoDB Atlas...">⏳ Syncing</span>
-          ) : status === 'cloud' ? (
-            <span className="lb-cloud-tag" title="Connected live to MongoDB Atlas">☁️ Cloud</span>
+          ) : status === 'error' ? (
+            <span className="lb-error-tag" title={error || 'Unable to connect to MongoDB Atlas'}>⚠️ Disconnected</span>
           ) : (
-            <span className="lb-offline-tag" title="Viewing cached rankings. Server offline or unreachable.">💾 Local Cache</span>
+            <span className="lb-cloud-tag" title="Live connection to MongoDB Atlas">☁️ Live MongoDB</span>
           )}
         </div>
         <div className="leaderboard-header-actions">
@@ -75,7 +76,7 @@ export function Leaderboard({
               className={`leaderboard-refresh-btn ${isSyncing ? 'spinning' : ''}`}
               onClick={onRefresh}
               aria-label="Refresh leaderboard"
-              title="Refresh from MongoDB Atlas"
+              title="Refresh directly from MongoDB Atlas"
               disabled={isSyncing}
             >
               🔄
@@ -96,16 +97,25 @@ export function Leaderboard({
         {isLoading && entries.length === 0 ? (
           <div className="leaderboard-empty">
             <div className="leaderboard-empty-icon">⏳</div>
-            <p className="leaderboard-empty-text">Loading stats from MongoDB...</p>
+            <p className="leaderboard-empty-text">Loading stats from MongoDB Atlas...</p>
           </div>
         ) : entries.length === 0 ? (
           <div className="leaderboard-empty">
-            <div className="leaderboard-empty-icon">🏆</div>
-            <p className="leaderboard-empty-text">No games played yet.<br />Start a game to see your stats!</p>
-            {onRefresh && status === 'offline' && (
-              <button className="leaderboard-retry-btn" onClick={onRefresh}>
-                🔄 Retry Connection
-              </button>
+            <div className="leaderboard-empty-icon">{status === 'error' ? '🔌' : '🏆'}</div>
+            {status === 'error' ? (
+              <>
+                <p className="leaderboard-empty-text">
+                  Unable to connect to MongoDB Atlas.<br />
+                  <small style={{ opacity: 0.7 }}>{error || 'Network error'}</small>
+                </p>
+                {onRefresh && (
+                  <button className="leaderboard-retry-btn" onClick={onRefresh}>
+                    🔄 Retry Connection
+                  </button>
+                )}
+              </>
+            ) : (
+              <p className="leaderboard-empty-text">No games recorded yet in MongoDB.<br />Play a match to record the first game!</p>
             )}
           </div>
         ) : (
@@ -157,7 +167,7 @@ export function Leaderboard({
       {entries.length > 0 && (
         <div className="leaderboard-footer">
           <button className="clear-btn" onClick={handleClear} id="clear-leaderboard">
-            {showConfirm ? '⚠️ Click again to confirm' : '🗑️ Clear Leaderboard'}
+            {showConfirm ? '⚠️ Click again to confirm wipe' : '🗑️ Clear Leaderboard'}
           </button>
         </div>
       )}

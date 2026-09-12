@@ -9,11 +9,8 @@ const __dirname = path.dirname(__filename);
 // Load .env from project root
 dotenv.config({ path: path.resolve(__dirname, '../.env') });
 
-const uri = process.env.MONGODB_URI;
-
-if (!uri) {
-  console.warn('⚠️ Warning: MONGODB_URI is not set in environment variables or .env file.');
-}
+const DEFAULT_MONGODB_URI = 'mongodb+srv://arkobag712409:8H4XiT373RVx3xdg@cluster0.8lvaz.mongodb.net/tictactoe?retryWrites=true&w=majority';
+const uri = process.env.MONGODB_URI || DEFAULT_MONGODB_URI;
 
 let client = null;
 let db = null;

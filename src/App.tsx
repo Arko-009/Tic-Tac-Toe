@@ -17,7 +17,7 @@ const DEFAULT_CONFIG: GameConfig = {
   mode: 'ai',
   difficulty: 'medium',
   playerXName: 'Player 1',
-  playerOName: 'Smart Bot',
+  playerOName: 'ChatGPT',
 };
 
 function App() {

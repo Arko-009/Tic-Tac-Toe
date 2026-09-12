@@ -6,9 +6,9 @@ interface DifficultySelectorProps {
 }
 
 const difficulties: { key: Difficulty; icon: string; label: string; desc: string }[] = [
-  { key: 'easy', icon: '😊', label: 'Easy', desc: 'Random moves' },
-  { key: 'medium', icon: '🧠', label: 'Medium', desc: 'Smart plays' },
-  { key: 'impossible', icon: '💀', label: 'Impossible', desc: 'Unbeatable' },
+  { key: 'easy', icon: '✨', label: 'Gemini', desc: 'Relaxed moves' },
+  { key: 'medium', icon: '🧠', label: 'ChatGPT', desc: 'Smart plays' },
+  { key: 'impossible', icon: '⚡', label: 'Claude', desc: 'Unbeatable' },
 ];
 
 export function DifficultySelector({ selected, onChange }: DifficultySelectorProps) {

@@ -50,9 +50,9 @@ export function GameOverModal({
           {isDraw
             ? 'Great minds think alike!'
             : config.mode === 'ai' && winner === 'X'
-              ? `You beat the ${config.playerOName}!`
+              ? `You beat ${config.playerOName}!`
               : config.mode === 'ai' && winner === 'O'
-                ? 'The AI outplayed you this time.'
+                ? `${config.playerOName} outplayed you this time.`
                 : `${winnerName} takes the round!`}
         </p>
 

@@ -18,10 +18,10 @@ export function GameModeSelector({ onStart, onViewLeaderboard }: GameModeSelecto
     const oName =
       mode === 'ai'
         ? difficulty === 'easy'
-          ? 'Easy Bot'
+          ? 'Gemini'
           : difficulty === 'medium'
-            ? 'Smart Bot'
-            : 'Impossible Bot'
+            ? 'ChatGPT'
+            : 'Claude'
         : playerOName.trim() || 'Player 2';
 
     onStart({

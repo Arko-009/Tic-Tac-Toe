@@ -56,7 +56,13 @@ export function Leaderboard({
   };
 
   return (
-    <div className={`leaderboard-panel ${closing ? 'closing' : ''}`}>
+    <>
+      <div
+        className={`leaderboard-backdrop ${closing ? 'closing' : ''}`}
+        onClick={handleClose}
+        aria-hidden="true"
+      />
+      <div className={`leaderboard-panel ${closing ? 'closing' : ''}`}>
       <div className="leaderboard-header">
         <div className="leaderboard-title-group">
           <h2 className="leaderboard-title">
@@ -172,5 +178,6 @@ export function Leaderboard({
         </div>
       )}
     </div>
+    </>
   );
 }

@@ -636,6 +636,19 @@
 }
 
 /* ===== LEADERBOARD ===== */
+.leaderboard-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.65);
+  backdrop-filter: blur(6px);
+  z-index: 1999;
+  animation: fadeIn 0.3s ease-out;
+}
+
+.leaderboard-backdrop.closing {
+  animation: fadeOut 0.28s ease-in forwards;
+}
+
 .leaderboard-panel {
   position: fixed;
   top: 0;
@@ -643,14 +656,14 @@
   bottom: 0;
   width: 100%;
   max-width: 480px;
-  background: rgba(12, 12, 30, 0.97);
+  background: rgba(12, 12, 30, 0.98);
   backdrop-filter: blur(20px);
   border-left: 1px solid var(--border-glow);
-  z-index: 500;
+  z-index: 2000;
   display: flex;
   flex-direction: column;
   animation: slideInRight 0.4s ease-out;
-  box-shadow: -8px 0 40px rgba(0, 0, 0, 0.5);
+  box-shadow: -8px 0 40px rgba(0, 0, 0, 0.8);
 }
 
 .leaderboard-panel.closing {

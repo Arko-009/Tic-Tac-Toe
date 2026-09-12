@@ -1,11 +1,16 @@
 import { useState } from 'react';
 import type { PlayerStats } from '../game/types';
+import type { LeaderboardConnectionStatus } from '../hooks/useLeaderboard';
 
 interface LeaderboardProps {
   entries: PlayerStats[];
   isLoading?: boolean;
+  isSyncing?: boolean;
+  status?: LeaderboardConnectionStatus;
+  error?: string | null;
   onClose: () => void;
   onClear: () => void;
+  onRefresh?: () => void;
 }
 
 function getRankDisplay(rank: number): string {
@@ -22,7 +27,15 @@ function getWinRate(entry: PlayerStats): string {
   return `${Math.round((entry.wins / entry.totalGames) * 100)}%`;
 }
 
-export function Leaderboard({ entries, isLoading, onClose, onClear }: LeaderboardProps) {
+export function Leaderboard({
+  entries,
+  isLoading = false,
+  isSyncing = false,
+  status = 'cloud',
+  onClose,
+  onClear,
+  onRefresh,
+}: LeaderboardProps) {
   const [showConfirm, setShowConfirm] = useState(false);
   const [closing, setClosing] = useState(false);
 
@@ -44,13 +57,39 @@ export function Leaderboard({ entries, isLoading, onClose, onClear }: Leaderboar
   return (
     <div className={`leaderboard-panel ${closing ? 'closing' : ''}`}>
       <div className="leaderboard-header">
-        <h2 className="leaderboard-title">
-          <span>🏆</span> Leaderboard
-          <span className="lb-cloud-tag" title="Connected to MongoDB Atlas">☁️ Cloud</span>
-        </h2>
-        <button className="leaderboard-close" onClick={handleClose} aria-label="Close leaderboard" id="close-leaderboard">
-          ✕
-        </button>
+        <div className="leaderboard-title-group">
+          <h2 className="leaderboard-title">
+            <span>🏆</span> Leaderboard
+          </h2>
+          {isSyncing ? (
+            <span className="lb-sync-tag" title="Syncing with MongoDB Atlas...">⏳ Syncing</span>
+          ) : status === 'cloud' ? (
+            <span className="lb-cloud-tag" title="Connected live to MongoDB Atlas">☁️ Cloud</span>
+          ) : (
+            <span className="lb-offline-tag" title="Viewing cached rankings. Server offline or unreachable.">💾 Local Cache</span>
+          )}
+        </div>
+        <div className="leaderboard-header-actions">
+          {onRefresh && (
+            <button
+              className={`leaderboard-refresh-btn ${isSyncing ? 'spinning' : ''}`}
+              onClick={onRefresh}
+              aria-label="Refresh leaderboard"
+              title="Refresh from MongoDB Atlas"
+              disabled={isSyncing}
+            >
+              🔄
+            </button>
+          )}
+          <button
+            className="leaderboard-close"
+            onClick={handleClose}
+            aria-label="Close leaderboard"
+            id="close-leaderboard"
+          >
+            ✕
+          </button>
+        </div>
       </div>
 
       <div className="leaderboard-body">
@@ -63,6 +102,11 @@ export function Leaderboard({ entries, isLoading, onClose, onClear }: Leaderboar
           <div className="leaderboard-empty">
             <div className="leaderboard-empty-icon">🏆</div>
             <p className="leaderboard-empty-text">No games played yet.<br />Start a game to see your stats!</p>
+            {onRefresh && status === 'offline' && (
+              <button className="leaderboard-retry-btn" onClick={onRefresh}>
+                🔄 Retry Connection
+              </button>
+            )}
           </div>
         ) : (
           <>
@@ -89,13 +133,16 @@ export function Leaderboard({ entries, isLoading, onClose, onClear }: Leaderboar
                 <span className="lb-stat" style={{ color: 'var(--accent-green)' }}>{entry.wins}</span>
                 <span className="lb-stat" style={{ color: 'var(--color-o)' }}>{entry.losses}</span>
                 <span className="lb-stat">{entry.draws}</span>
-                <span className="lb-winrate" style={{
-                  color: entry.wins / Math.max(entry.totalGames, 1) >= 0.6
-                    ? 'var(--accent-green)'
-                    : entry.wins / Math.max(entry.totalGames, 1) >= 0.4
-                      ? 'var(--accent-gold)'
-                      : 'var(--color-o)'
-                }}>
+                <span
+                  className="lb-winrate"
+                  style={{
+                    color: entry.wins / Math.max(entry.totalGames, 1) >= 0.6
+                      ? 'var(--accent-green)'
+                      : entry.wins / Math.max(entry.totalGames, 1) >= 0.4
+                        ? 'var(--accent-gold)'
+                        : 'var(--color-o)'
+                  }}
+                >
                   {getWinRate(entry)}
                 </span>
                 <span className="lb-streak">

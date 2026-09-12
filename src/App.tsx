@@ -43,6 +43,13 @@ function App() {
     prevMoveCountRef.current = gameState.moveCount;
   }, [gameState.moveCount, playSound]);
 
+  // Refresh leaderboard stats from MongoDB whenever user opens leaderboard drawer
+  useEffect(() => {
+    if (showLeaderboard) {
+      leaderboard.refreshLeaderboard();
+    }
+  }, [showLeaderboard, leaderboard.refreshLeaderboard]);
+
   // Handle game over — record results and trigger effects
   useEffect(() => {
     if (gameState.gameResult.status === 'playing' || gameResultProcessed) return;
@@ -222,8 +229,12 @@ function App() {
         <Leaderboard
           entries={leaderboard.entries}
           isLoading={leaderboard.isLoading}
+          isSyncing={leaderboard.isSyncing}
+          status={leaderboard.status}
+          error={leaderboard.error}
           onClose={() => setShowLeaderboard(false)}
           onClear={leaderboard.clearLeaderboard}
+          onRefresh={leaderboard.refreshLeaderboard}
         />
       )}
     </div>

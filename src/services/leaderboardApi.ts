@@ -1,14 +1,25 @@
 import type { PlayerStats } from '../game/types';
 
-const BASE_URL = '/api/leaderboard';
+// Support remote deployed backend via VITE_API_URL or default to Vite proxy /api
+const API_HOST = (import.meta.env.VITE_API_URL || '').replace(/\/$/, '');
+const BASE_URL = API_HOST ? `${API_HOST}/api/leaderboard` : '/api/leaderboard';
 
 export async function fetchLeaderboardApi(): Promise<PlayerStats[]> {
-  const response = await fetch(BASE_URL);
-  if (!response.ok) {
-    throw new Error(`Failed to fetch leaderboard: ${response.statusText}`);
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 7000);
+
+  try {
+    const response = await fetch(BASE_URL, {
+      signal: controller.signal,
+    });
+    if (!response.ok) {
+      throw new Error(`Failed to fetch leaderboard: ${response.statusText} (${response.status})`);
+    }
+    const result = await response.json();
+    return result.data || [];
+  } finally {
+    clearTimeout(timeoutId);
   }
-  const result = await response.json();
-  return result.data || [];
 }
 
 export async function recordWinApi(playerName: string): Promise<PlayerStats[]> {

@@ -674,6 +674,55 @@
   gap: var(--space-sm);
 }
 
+.leaderboard-title-group {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  flex-wrap: wrap;
+}
+
+.leaderboard-header-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+}
+
+.leaderboard-refresh-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-full);
+  background: var(--bg-glass);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  transition: var(--transition-fast);
+}
+
+.leaderboard-refresh-btn:hover:not(:disabled) {
+  background: var(--bg-glass-hover);
+  color: var(--color-x);
+  border-color: var(--color-x-glow);
+  transform: rotate(45deg);
+}
+
+.leaderboard-refresh-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.leaderboard-refresh-btn.spinning {
+  animation: lbSpin 1s linear infinite;
+}
+
+@keyframes lbSpin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
 .lb-cloud-tag {
   font-size: 0.72rem;
   font-weight: 600;
@@ -686,6 +735,55 @@
   display: inline-flex;
   align-items: center;
   gap: 4px;
+}
+
+.lb-sync-tag {
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  background: rgba(0, 245, 255, 0.15);
+  border: 1px solid rgba(0, 245, 255, 0.35);
+  color: #00f5ff;
+  letter-spacing: 0.03em;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  animation: pulseGlow 1.5s ease-in-out infinite;
+}
+
+.lb-offline-tag {
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  background: rgba(255, 136, 0, 0.15);
+  border: 1px solid rgba(255, 136, 0, 0.35);
+  color: #ffaa33;
+  letter-spacing: 0.03em;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.leaderboard-retry-btn {
+  margin-top: var(--space-md);
+  padding: var(--space-xs) var(--space-md);
+  border-radius: var(--radius-full);
+  background: var(--bg-glass);
+  border: 1px solid var(--border-glow);
+  color: var(--text-primary);
+  font-family: var(--font-primary);
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition-fast);
+}
+
+.leaderboard-retry-btn:hover {
+  background: rgba(0, 245, 255, 0.1);
+  border-color: var(--color-x);
+  color: var(--color-x);
 }
 
 .leaderboard-close {
